@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/api/config/database.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -18,8 +18,8 @@ if ($method !== 'GET') {
     $headers = getallheaders();
     $providedKey = isset($headers['X-API-KEY']) ? $headers['X-API-KEY'] : null;
     
-    // Fallback load of environment variables to fetch expected key value
-    $envFile = __DIR__ . '/../.env';
+    // Fallback load of environment variables to fetch expected key value locally
+    $envFile = __DIR__ . '/.env';
     if (file_exists($envFile)) {
         $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         foreach ($lines as $line) {
@@ -55,7 +55,7 @@ $resource = $uriSegments[$apiIndex + 1];
 
 switch ($resource) {
     case 'about':
-        require_once __DIR__ . '/controllers/AboutController.php';
+        require_once __DIR__ . '/api/controllers/AboutController.php';
         $controller = new AboutController();
         $controller->handleRequest($method);
         break;
