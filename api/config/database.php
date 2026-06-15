@@ -8,7 +8,6 @@ class Database {
     public $conn;
 
     public function __construct() {
-        // Look for .env in the root folder relative to this script
         $envFile = __DIR__ . '/../../.env';
         if (file_exists($envFile)) {
             $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -19,21 +18,27 @@ class Database {
             }
         }
 
-        $this->host = isset($_ENV['DB_HOST']) ? $_ENV['DB_HOST'] : "localhost";
-        $this->port = isset($_ENV['DB_PORT']) ? $_ENV['DB_PORT'] : "3306";
-        $this->db_name = isset($_ENV['DB_NAME']) ? $_ENV['DB_NAME'] : "portfolio_admin";
-        $this->username = isset($_ENV['DB_USER']) ? $_ENV['DB_USER'] : "root";
-        $this->password = isset($_ENV['DB_PASSWORD']) ? $_ENV['DB_PASSWORD'] : "";
+        $this->host = isset($_ENV['DB_HOST']) ? $_ENV['DB_HOST'] : (getenv('DB_HOST') ?: "localhost");
+        $this->port = isset($_ENV['DB_PORT']) ? $_ENV['DB_PORT'] : (getenv('DB_PORT') ?: "3306");
+        $this->db_name = isset($_ENV['DB_NAME']) ? $_ENV['DB_NAME'] : (getenv('DB_NAME') ?: "portfolio_admin");
+        $this->username = isset($_ENV['DB_USER']) ? $_ENV['DB_USER'] : (getenv('DB_USER') ?: "root");
+        $this->password = isset($_ENV['DB_PASSWORD']) ? $_ENV['DB_PASSWORD'] : (getenv('DB_PASSWORD') ?: "");
     }
 
     public function getConnection() {
         $this->conn = null;
         try {
             $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name;
+            
+            // PHP 8.5 namespaced constant check
+            $initCommand = class_exists('Pdo\Mysql') && defined('Pdo\Mysql::ATTR_INIT_COMMAND')
+                ? \Pdo\Mysql::ATTR_INIT_COMMAND 
+                : \PDO::MYSQL_ATTR_INIT_COMMAND;
+
             $this->conn = new PDO($dsn, $this->username, $this->password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8"
+                $initCommand => "SET NAMES utf8"
             ]);
         } catch(PDOException $exception) {
             http_response_code(500);
