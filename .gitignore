@@ -1,0 +1,10 @@
+# Database configuration & credentials
+.env
+
+# XAMPP/OS specific files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local development logs
+*.log

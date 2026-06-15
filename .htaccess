@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Stop processing if the request matches an actual file or directory
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Route all other traffic through your central api router index file
+RewriteRule ^api/(.*)$ api/index.php [L,QSA]
