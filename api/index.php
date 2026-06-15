@@ -9,17 +9,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once __DIR__ . '/api/config/database.php';
+require_once __DIR__ . '/config/database.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Secure write/modify operations. Allow public GET requests to read portfolio data.
+// Secure write/modify operations
 if ($method !== 'GET') {
     $headers = getallheaders();
     $providedKey = isset($headers['X-API-KEY']) ? $headers['X-API-KEY'] : null;
     
-    // Fallback load of environment variables to fetch expected key value locally
-    $envFile = __DIR__ . '/.env';
+    $envFile = __DIR__ . '/../.env';
     if (file_exists($envFile)) {
         $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         foreach ($lines as $line) {
@@ -40,28 +39,21 @@ if ($method !== 'GET') {
     }
 }
 
-// URL Routing Engine
-$requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$uriSegments = explode('/', trim($requestUri, '/'));
-$apiIndex = array_search('api', $uriSegments);
-
-if ($apiIndex === false || !isset($uriSegments[$apiIndex + 1])) {
-    http_response_code(404);
-    echo json_encode(["message" => "Endpoint not found."]);
-    exit();
-}
-
-$resource = $uriSegments[$apiIndex + 1];
+// Route extraction via explicit query string passed by vercel.json
+$resource = isset($_GET['route']) ? rtrim($_GET['route'], '/') : '';
 
 switch ($resource) {
     case 'about':
-        require_once __DIR__ . '/api/controllers/AboutController.php';
+        require_once __DIR__ . '/controllers/AboutController.php';
         $controller = new AboutController();
         $controller->handleRequest($method);
         break;
 
     default:
         http_response_code(404);
-        echo json_encode(["message" => "Resource not found."]);
+        echo json_encode([
+            "message" => "Resource not found.",
+            "debug_route_received" => $resource
+        ]);
         break;
 }
