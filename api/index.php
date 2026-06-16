@@ -15,10 +15,11 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Secure write/modify operations
 if ($method !== 'GET') {
-    // 1. Get all headers and force keys to lowercase to fix Vercel/production normalization
+    // Get all headers and force keys to lowercase to fix Vercel/production normalization
     $headers = array_change_key_case(getallheaders(), CASE_LOWER);
     $providedKey = isset($headers['x-api-key']) ? $headers['x-api-key'] : null;
     
+    // Parse local .env file if it exists (Localhost)
     $envFile = __DIR__ . '/../.env';
     if (file_exists($envFile)) {
         $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -26,15 +27,15 @@ if ($method !== 'GET') {
             if (strpos(trim($line), '#') === 0) continue;
             list($name, $value) = explode('=', $line, 2);
             if (trim($name) === 'API_KEY') {
-                // Trim trailing spaces and potential quotes around the key string
                 $_ENV['API_KEY'] = trim($value, " \t\n\r\0\x0B\"'");
             }
         }
     }
 
-    $expectedKey = isset($_ENV['API_KEY']) ? $_ENV['API_KEY'] : getenv('API_KEY');
+    // Cascade lookup to handle localhost environments and Vercel serverless environment injection
+    $expectedKey = $_ENV['API_KEY'] ?? getenv('API_KEY') ?? $_SERVER['API_KEY'] ?? '';
 
-    if (!$providedKey || $providedKey !== $expectedKey) {
+    if (!$providedKey || empty($expectedKey) || $providedKey !== $expectedKey) {
         http_response_code(401);
         echo json_encode(["message" => "Unauthorized: Invalid or missing API key."]);
         exit();
