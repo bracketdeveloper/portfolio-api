@@ -61,6 +61,11 @@ switch ($resource) {
         $controller = new ProjectCategoryController();
         $controller->handleRequest($method);
         break;
+    case 'experiences':
+        require_once __DIR__ . '/controllers/ExperienceController.php';
+        $controller = new ExperienceController();
+        $controller->handleRequest($method);
+        break;
     default:
         http_response_code(404);
         echo json_encode([
