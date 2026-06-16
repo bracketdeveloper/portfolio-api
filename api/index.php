@@ -11,14 +11,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/config/database.php';
 
-$method = $_SERVER['REQUEST_METHOD']; 
+$method = $_SERVER['REQUEST_METHOD'];
 
 // Secure write/modify operations
 if ($method !== 'GET') {
     // Get all headers and force keys to lowercase to fix Vercel/production normalization
     $headers = array_change_key_case(getallheaders(), CASE_LOWER);
     $providedKey = isset($headers['x-api-key']) ? $headers['x-api-key'] : null;
-    
+
     // Parse local .env file if it exists (Localhost)
     $envFile = __DIR__ . '/../.env';
     if (file_exists($envFile)) {
@@ -51,7 +51,11 @@ switch ($resource) {
         $controller = new AboutController();
         $controller->handleRequest($method);
         break;
-
+    case 'skill-categories':
+        require_once __DIR__ . '/controllers/SkillCategoryController.php';
+        $controller = new SkillCategoryController();
+        $controller->handleRequest($method);
+        break;
     default:
         http_response_code(404);
         echo json_encode([
