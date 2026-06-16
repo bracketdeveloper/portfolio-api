@@ -15,8 +15,9 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Secure write/modify operations
 if ($method !== 'GET') {
-    $headers = getallheaders();
-    $providedKey = isset($headers['X-API-KEY']) ? $headers['X-API-KEY'] : null;
+    // 1. Get all headers and force keys to lowercase to fix Vercel/production normalization
+    $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+    $providedKey = isset($headers['x-api-key']) ? $headers['x-api-key'] : null;
     
     $envFile = __DIR__ . '/../.env';
     if (file_exists($envFile)) {
@@ -25,7 +26,8 @@ if ($method !== 'GET') {
             if (strpos(trim($line), '#') === 0) continue;
             list($name, $value) = explode('=', $line, 2);
             if (trim($name) === 'API_KEY') {
-                $_ENV['API_KEY'] = trim($value);
+                // Trim trailing spaces and potential quotes around the key string
+                $_ENV['API_KEY'] = trim($value, " \t\n\r\0\x0B\"'");
             }
         }
     }
