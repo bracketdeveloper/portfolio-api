@@ -76,6 +76,11 @@ switch ($resource) {
         $controller = new SkillController();
         $controller->handleRequest($method);
         break;
+    case 'projects':
+        require_once __DIR__ . '/controllers/ProjectController.php';
+        $controller = new ProjectController();
+        $controller->handleRequest($method);
+        break;
     default:
         http_response_code(404);
         echo json_encode([
