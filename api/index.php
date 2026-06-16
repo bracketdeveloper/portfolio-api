@@ -66,6 +66,11 @@ switch ($resource) {
         $controller = new ExperienceController();
         $controller->handleRequest($method);
         break;
+    case 'contact':
+        require_once __DIR__ . '/controllers/ContactController.php';
+        $controller = new ContactController();
+        $controller->handleRequest($method);
+        break;
     default:
         http_response_code(404);
         echo json_encode([
