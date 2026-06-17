@@ -13,34 +13,40 @@ class Database {
             $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
                 if (strpos(trim($line), '#') === 0) continue;
+                if (strpos($line, '=') === false) continue;
                 list($name, $value) = explode('=', $line, 2);
                 $_ENV[trim($name)] = trim($value);
             }
         }
 
-        $this->host = isset($_ENV['DB_HOST']) ? $_ENV['DB_HOST'] : (getenv('DB_HOST') ?: "localhost");
-        $this->port = isset($_ENV['DB_PORT']) ? $_ENV['DB_PORT'] : (getenv('DB_PORT') ?: "3306");
-        $this->db_name = isset($_ENV['DB_NAME']) ? $_ENV['DB_NAME'] : (getenv('DB_NAME') ?: "portfolio_admin");
-        $this->username = isset($_ENV['DB_USER']) ? $_ENV['DB_USER'] : (getenv('DB_USER') ?: "root");
-        $this->password = isset($_ENV['DB_PASSWORD']) ? $_ENV['DB_PASSWORD'] : (getenv('DB_PASSWORD') ?: "");
+        $this->host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: "localhost";
+        $this->port = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: "3306";
+        $this->db_name = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: "portfolio_admin";
+        $this->username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: "root";
+        $this->password = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: "";
     }
 
     public function getConnection() {
         $this->conn = null;
         try {
-            $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name;
+            $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4";
             
-            // PHP 8.5 namespaced constant check
-            $initCommand = class_exists('Pdo\Mysql') && defined('Pdo\Mysql::ATTR_INIT_COMMAND')
-                ? \Pdo\Mysql::ATTR_INIT_COMMAND 
-                : \PDO::MYSQL_ATTR_INIT_COMMAND;
+            $caPath = realpath(__DIR__ . '/../../ca.pem');
 
-            $this->conn = new PDO($dsn, $this->username, $this->password, [
+            if (!$caPath || !file_exists($caPath)) {
+                throw new Exception("CA Certificate not found at: " . __DIR__ . '/../../ca.pem');
+            }
+
+            $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                $initCommand => "SET NAMES utf8"
-            ]);
-        } catch(PDOException $exception) {
+                PDO::MYSQL_ATTR_SSL_CA => $caPath,
+                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => true
+            ];
+
+            $this->conn = new PDO($dsn, $this->username, $this->password, $options);
+            
+        } catch(Exception $exception) {
             http_response_code(500);
             echo json_encode(["message" => "Database connection error: " . $exception->getMessage()]);
             exit();
