@@ -32,7 +32,6 @@ class Database {
         try {
             $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4";
             
-            // Define SSL constants dynamically to support older and newer PHP versions
             $sslCa = class_exists('PDO\Mysql') ? \PDO\Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA;
             $sslVerify = class_exists('PDO\Mysql') ? \PDO\Mysql::ATTR_SSL_VERIFY_SERVER_CERT : PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT;
 
@@ -45,17 +44,19 @@ class Database {
             if (getenv('VERCEL') === '1') {
                 $certPath = '/tmp/ca.pem';
                 if (!file_exists($certPath) && isset($_ENV['DB_SSL_CERT'])) {
-                    file_put_contents($certPath, $_ENV['DB_SSL_CERT']);
+                    // CRITICAL: Replace literal string "\n" with actual newline character
+                    $certContent = str_replace('\n', "\n", $_ENV['DB_SSL_CERT']);
+                    file_put_contents($certPath, $certContent);
                 }
                 $options[$sslCa] = $certPath;
+                $options[$sslVerify] = true;
             } else {
                 $localCert = realpath(__DIR__ . '/../../ca.pem');
                 if ($localCert) {
                     $options[$sslCa] = $localCert;
+                    $options[$sslVerify] = true;
                 }
             }
-            
-            $options[$sslVerify] = true;
 
             $this->conn = new PDO($dsn, $this->username, $this->password, $options);
             
