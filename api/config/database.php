@@ -35,28 +35,34 @@ class Database {
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_PERSISTENT => false,
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => true
+                PDO::ATTR_PERSISTENT => false
             ];
 
-            // Use physical file for local, /tmp for Vercel
+            // Use correct constant based on PHP version
+            $sslCaConst = defined('PDO::MYSQL_ATTR_SSL_CA') ? PDO::MYSQL_ATTR_SSL_CA : 1012;
+            $sslVerifyConst = defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT') ? PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT : 1015;
+
             if (getenv('VERCEL') === '1') {
                 $certPath = '/tmp/ca.pem';
                 if (!file_exists($certPath) && isset($_ENV['DB_SSL_CERT'])) {
                     file_put_contents($certPath, $_ENV['DB_SSL_CERT']);
                 }
-                $options[PDO::MYSQL_ATTR_SSL_CA] = $certPath;
+                $options[$sslCaConst] = $certPath;
             } else {
                 $localCert = realpath(__DIR__ . '/../../ca.pem');
                 if ($localCert) {
-                    $options[PDO::MYSQL_ATTR_SSL_CA] = $localCert;
+                    $options[$sslCaConst] = $localCert;
                 }
             }
+            
+            $options[$sslVerifyConst] = true;
 
             $this->conn = new PDO($dsn, $this->username, $this->password, $options);
             
         } catch(Exception $exception) {
-            http_response_code(500);
+            if (!headers_sent()) {
+                http_response_code(500);
+            }
             echo json_encode(["message" => "Database connection error: " . $exception->getMessage()]);
             exit();
         }
