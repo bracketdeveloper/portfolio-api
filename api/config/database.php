@@ -21,28 +21,37 @@ class Database {
 
         $this->host = $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: "localhost";
         $this->port = $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: "3306";
-        $this->db_name = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: "portfolio_admin";
-        $this->username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: "root";
+        $this->db_name = $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: "portfolio_db";
+        $this->username = $_ENV['DB_USER'] ?? getenv('DB_USER') ?: "avnadmin";
         $this->password = $_ENV['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: "";
     }
 
     public function getConnection() {
-        $this->conn = null;
+        if ($this->conn) return $this->conn;
+
         try {
             $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name . ";charset=utf8mb4";
             
-            $caPath = realpath(__DIR__ . '/../../ca.pem');
-
-            if (!$caPath || !file_exists($caPath)) {
-                throw new Exception("CA Certificate not found at: " . __DIR__ . '/../../ca.pem');
-            }
-
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::MYSQL_ATTR_SSL_CA => $caPath,
+                PDO::ATTR_PERSISTENT => false,
                 PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => true
             ];
+
+            // Use physical file for local, /tmp for Vercel
+            if (getenv('VERCEL') === '1') {
+                $certPath = '/tmp/ca.pem';
+                if (!file_exists($certPath) && isset($_ENV['DB_SSL_CERT'])) {
+                    file_put_contents($certPath, $_ENV['DB_SSL_CERT']);
+                }
+                $options[PDO::MYSQL_ATTR_SSL_CA] = $certPath;
+            } else {
+                $localCert = realpath(__DIR__ . '/../../ca.pem');
+                if ($localCert) {
+                    $options[PDO::MYSQL_ATTR_SSL_CA] = $localCert;
+                }
+            }
 
             $this->conn = new PDO($dsn, $this->username, $this->password, $options);
             
