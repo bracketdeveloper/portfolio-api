@@ -10,13 +10,20 @@ class MessageController {
     }
 
     public function handleRequest($method) {
-        if ($method === 'POST') {
-            $this->createMessage();
-        } elseif ($method === 'GET') {
-            $this->getMessages();
-        } else {
-            http_response_code(405);
-            echo json_encode(["message" => "Method not allowed."]);
+        switch ($method) {
+            case 'POST':
+                $this->createMessage();
+                break;
+            case 'GET':
+                $this->getMessages();
+                break;
+            case 'DELETE':
+                $this->deleteMessage();
+                break;
+            default:
+                http_response_code(405);
+                echo json_encode(["message" => "Method not allowed."]);
+                break;
         }
     }
 
@@ -43,5 +50,22 @@ class MessageController {
     private function getMessages() {
         $stmt = $this->db->query("SELECT * FROM messages ORDER BY created_at DESC");
         echo json_encode($stmt->fetchAll());
+    }
+
+    private function deleteMessage() {
+        $data = json_decode(file_get_contents("php://input"), true);
+        if (empty($data['id'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "ID is required."]);
+            return;
+        }
+
+        $stmt = $this->db->prepare("DELETE FROM messages WHERE id = :id");
+        if ($stmt->execute([':id' => $data['id']])) {
+            echo json_encode(["message" => "Message deleted successfully."]);
+        } else {
+            http_response_code(500);
+            echo json_encode(["message" => "Failed to delete message."]);
+        }
     }
 }
