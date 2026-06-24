@@ -81,6 +81,10 @@ switch ($resource) {
         $controller = new ProjectController();
         $controller->handleRequest($method);
         break;
+    case 'messages':
+        require_once __DIR__ . '/controllers/MessageController.php';
+        (new MessageController())->handleRequest($method);
+        break;
     default:
         http_response_code(404);
         echo json_encode([
